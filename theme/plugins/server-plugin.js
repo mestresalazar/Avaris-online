@@ -9,7 +9,7 @@ const { QuestNpc } = require('./objects/server/quest-npc');
 const { WeaponsMaster } = require('./objects/server/weapons-master');
 const { RockObject } = require('./objects/server/rock-object');
 const { TreasureChest } = require('./objects/server/treasure-chest');
-const { PluginInterface } = require('reldens/lib/features/plugin-interface');
+const { PluginInterface } = require('../../lib/features/plugin-interface');
 
 class ServerPlugin extends PluginInterface
 {

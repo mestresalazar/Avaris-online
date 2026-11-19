@@ -23,7 +23,7 @@ class SkillsSkillOwnerEffectsConditionsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_skill_owner_effects',
                 alias: 'related_skills_skill_owner_effects',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

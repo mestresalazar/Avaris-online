@@ -47,7 +47,7 @@ class ChatEntity extends EntityProperties
                 type: 'reference',
                 reference: 'chat_message_types',
                 alias: 'related_chat_message_types',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 dbType: 'int'
             },
             message_time: {

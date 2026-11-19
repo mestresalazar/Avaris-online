@@ -23,7 +23,7 @@ class ClanLevelsModifiersEntity extends EntityProperties
                 type: 'reference',
                 reference: 'clan_levels',
                 alias: 'related_clan_levels',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },
@@ -39,7 +39,7 @@ class ClanLevelsModifiersEntity extends EntityProperties
                 type: 'reference',
                 reference: 'operation_types',
                 alias: 'related_operation_types',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

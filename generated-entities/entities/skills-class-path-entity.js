@@ -32,7 +32,7 @@ class SkillsClassPathEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_levels_set',
                 alias: 'related_skills_levels_set',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

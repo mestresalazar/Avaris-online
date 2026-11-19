@@ -22,7 +22,7 @@ class SkillsClassPathLevelSkillsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_class_path',
                 alias: 'related_skills_class_path',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },
@@ -30,7 +30,7 @@ class SkillsClassPathLevelSkillsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_levels',
                 alias: 'related_skills_levels',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },
@@ -38,7 +38,7 @@ class SkillsClassPathLevelSkillsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_skill',
                 alias: 'related_skills_skill',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             }

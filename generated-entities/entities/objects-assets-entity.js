@@ -22,7 +22,7 @@ class ObjectsAssetsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'objects',
                 alias: 'related_objects',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

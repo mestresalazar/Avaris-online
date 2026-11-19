@@ -22,7 +22,7 @@ class ClanMembersEntity extends EntityProperties
                 type: 'reference',
                 reference: 'clan',
                 alias: 'related_clan',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

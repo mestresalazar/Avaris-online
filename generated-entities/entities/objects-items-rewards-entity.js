@@ -30,16 +30,14 @@ class ObjectsItemsRewardsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'items_item',
                 alias: 'related_items_item_item_key',
-                onDelete: 'noAction',
-                isRequired: true,
+                onDelete: 'restrict',
                 dbType: 'varchar'
             },
             reward_item_key: {
                 type: 'reference',
                 reference: 'items_item',
                 alias: 'related_items_item_reward_item_key',
-                onDelete: 'noAction',
-                isRequired: true,
+                onDelete: 'restrict',
                 dbType: 'varchar'
             },
             reward_quantity: {

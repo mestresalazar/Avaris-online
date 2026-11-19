@@ -29,7 +29,7 @@ class SkillsSkillEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_skill_type',
                 alias: 'related_skills_skill_type',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

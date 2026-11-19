@@ -24,7 +24,7 @@ class PlayersEntity extends EntityProperties
                 type: 'reference',
                 reference: 'users',
                 alias: 'related_users',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

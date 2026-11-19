@@ -39,7 +39,7 @@ class ObjectsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'objects_types',
                 alias: 'related_objects_types',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 dbType: 'int'
             },
             object_class_key: {

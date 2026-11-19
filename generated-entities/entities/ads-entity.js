@@ -29,7 +29,7 @@ class AdsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'ads_providers',
                 alias: 'related_ads_providers',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },
@@ -37,7 +37,7 @@ class AdsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'ads_types',
                 alias: 'related_ads_types',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

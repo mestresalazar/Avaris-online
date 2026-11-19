@@ -6,7 +6,7 @@
  *
  */
 
-const { TimingObject } = require('reldens/lib/objects/client/object/type/timing-object');
+const { TimingObject } = require('../../../../lib/objects/client/object/type/timing-object');
 const { TimingToolAnimation } = require('./timing-tool-animation');
 
 class ToolTimingObject extends TimingObject

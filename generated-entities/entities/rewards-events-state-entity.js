@@ -22,7 +22,7 @@ class RewardsEventsStateEntity extends EntityProperties
                 type: 'reference',
                 reference: 'rewards_events',
                 alias: 'related_rewards_events',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

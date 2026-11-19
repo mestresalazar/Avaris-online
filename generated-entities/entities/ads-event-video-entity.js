@@ -22,7 +22,7 @@ class AdsEventVideoEntity extends EntityProperties
                 type: 'reference',
                 reference: 'ads',
                 alias: 'related_ads',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 isUnique: true,
                 dbType: 'int'

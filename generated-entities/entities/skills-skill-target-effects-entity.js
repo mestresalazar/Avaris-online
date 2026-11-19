@@ -23,7 +23,7 @@ class SkillsSkillTargetEffectsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'skills_skill',
                 alias: 'related_skills_skill',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },
@@ -39,7 +39,7 @@ class SkillsSkillTargetEffectsEntity extends EntityProperties
                 type: 'reference',
                 reference: 'operation_types',
                 alias: 'related_operation_types',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 isRequired: true,
                 dbType: 'int'
             },

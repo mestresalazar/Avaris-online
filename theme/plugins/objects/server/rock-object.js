@@ -4,8 +4,8 @@
  *
  */
 
-const { TimingObject } = require('reldens/lib/objects/server/object/type/timing-object');
-const { GameConst } = require('reldens/lib/game/constants');
+const { TimingObject } = require('../../../../lib/objects/server/object/type/timing-object');
+const { GameConst } = require('../../../../lib/game/constants');
 
 class RockObject extends TimingObject
 {

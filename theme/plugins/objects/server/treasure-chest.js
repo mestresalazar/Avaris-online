@@ -4,8 +4,8 @@
  *
  */
 
-const { NpcObject } = require('reldens/lib/objects/server/object/type/npc-object');
-const { GameConst } = require('reldens/lib/game/constants');
+const { NpcObject } = require('../../../../lib/objects/server/object/type/npc-object');
+const { GameConst } = require('../../../../lib/game/constants');
 
 class TreasureChest extends NpcObject
 {

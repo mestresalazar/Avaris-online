@@ -4,9 +4,9 @@
  *
  */
 
-const { AnimationEngine } = require('reldens/lib/objects/client/animation-engine');
-const { ObjectsConst } = require('reldens/lib/objects/constants');
-const { GameConst } = require('reldens/lib/game/constants');
+const { AnimationEngine } = require('../../../../lib/objects/client/animation-engine');
+const { ObjectsConst } = require('../../../../lib/objects/constants');
+const { GameConst } = require('../../../../lib/game/constants');
 
 class TreasureChestClient extends AnimationEngine
 {

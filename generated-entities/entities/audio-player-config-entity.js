@@ -30,7 +30,7 @@ class AudioPlayerConfigEntity extends EntityProperties
                 type: 'reference',
                 reference: 'audio_categories',
                 alias: 'related_audio_categories',
-                onDelete: 'noAction',
+                onDelete: 'restrict',
                 dbType: 'int'
             },
             enabled: {
