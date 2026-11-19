@@ -1,0 +1,33 @@
+<div class="entity-view {{&entityName}}-view" data-delete-relations-warning="{{deleteRelationsWarning}}">
+    <h2 class="section-title">{{&templateTitle}}</h2>
+    <div class="actions sub-content actions-sticky">
+        <a class="button button-success" href="{{&entityNewRoute}}">Create New</a>
+        <a class="button button-primary" href="{{&entityEditRoute}}">Edit</a>
+        <a class="button button-secondary" href="{{&entityListRoute}}">Back</a>
+        <form class="form-delete" name="delete-form-top-{{&id}}" action="{{&entityDeleteRoute}}" method="post">
+            <span>
+                <input type="hidden" name="ids[]" value="{{&id}}"/>
+                <button class="button button-danger" type="submit">Delete</button>
+            </span>
+        </form>
+    </div>
+    {{#extraContentTop}}
+    <div class="extra-actions sub-content">
+        {{&extraContentTop}}
+    </div>
+    {{/extraContentTop}}
+    <div class="sub-content">
+        {{#fields}}
+        <div class="view-field">
+            <span class="field-name">{{&name}}</span>
+            <span class="field-value">{{&value}}</span>
+        </div>
+        {{/fields}}
+        {{&extraFormContent}}
+    </div>
+    {{#extraContentBottom}}
+    <div class="extra-actions sub-content">
+        {{&extraContentBottom}}
+    </div>
+    {{/extraContentBottom}}
+</div>

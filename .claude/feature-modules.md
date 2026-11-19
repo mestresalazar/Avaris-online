@@ -1,0 +1,187 @@
+# Feature Modules Reference
+
+Complete reference for all 24 feature modules under `lib/`.
+
+## Core/Game Management
+
+### Game (`lib/game/`)
+Core game engine
+- ServerManager - Main server orchestrator (lib/game/server/manager.js)
+- GameManager - Main client orchestrator (lib/game/client/game-manager.js)
+- Data server configuration
+- Entities loader
+- Maps loader
+- Login manager
+- Installation scripts
+- Theme manager
+
+### Rooms (`lib/rooms/`)
+Core multiplayer room system
+- `server/scene.js` (RoomScene): Main game room with physics, collisions, objects
+- `server/login.js` (RoomLogin): Authentication and player initialization
+- Client connects via `lib/game/client/room-events.js` to handle server state synchronization
+
+### World (`lib/world/`)
+Physics engine integration (P2.js), pathfinding, collisions
+- Authoritative physics calculations
+- Collision detection and handling
+- Pathfinding algorithms
+
+### Config (`lib/config/`)
+Configuration management
+- Database-driven configuration
+- Environment variable handling
+- Runtime configuration overrides
+
+### Features (`lib/features/`)
+Plugin-like modular system
+- Features are loaded from database (`features` table with `is_enabled` flag)
+- `server/manager.js` (FeaturesManager) dynamically loads enabled features
+- Each feature can hook into events via `setup()` method
+
+## Gameplay Systems
+
+### Actions (`lib/actions/`)
+Combat system (PvP/PvE), skills, battle mechanics
+- Server handles authoritative battle calculations
+- Client receives battle states and renders animations
+- `server/battle.js` - Main battle system
+- `server/pve.js` - PvE combat logic
+- `server/pvp.js` - PvP combat logic
+
+### Inventory (`lib/inventory/`)
+Items system with equipment and usable items
+- Integrates with @reldens/items-system
+- Item management, equipment slots, consumables
+
+### Respawn (`lib/respawn/`)
+Player and NPC respawn system
+- Death handling
+- Respawn points configuration
+
+### Rewards (`lib/rewards/`)
+Loot and rewards system
+- Drop tables
+- Reward distribution
+
+### Scores (`lib/scores/`)
+Leaderboards and ranking system
+- Player scores tracking
+- Global leaderboards
+
+### Teams (`lib/teams/`)
+Party/guild system
+- Team formation
+- Shared objectives
+- Clan levels and bonuses
+
+## Player Systems
+
+### Users (`lib/users/`)
+Authentication, registration, player management
+- Supports guest users, Firebase authentication
+- `lib/game/server/login-manager.js` handles the game, guest and administration panel logins, and creates the classes
+  of the other flows in `lib/game/server/`: `UserRegistration` (accounts and guests), `PlayerCreation` (new players,
+  with `PlayerRoomState` for the states placed in a room), `ForgotPassword` (forgot password requests, reset emails
+  and the reset page routes) and `UserDisconnection` (disconnection from every room and from the other servers)
+- Login protections: failed login lockout with stored address blocks, account bans, registration and guests limits per
+  address, see `.claude/ip-lists-and-login-blocks.md`
+- The forgot password interval is kept per user in the `users.password_reset_sent_at` column, shared by every server
+  and kept after a restart. `UsersManager.reservePasswordResetSentTime()` sets the column with a conditional update
+  (empty or older than the interval) before the email is sent, so concurrent requests send a single email, and a
+  failed send restores the previous value
+- Player creation and management
+
+### Chat (`lib/chat/`)
+Multi-channel chat (global, room, private messages)
+- Message types and tabs
+- Real-time messaging
+
+### Audio (`lib/audio/`)
+Sound and music system
+- Background music management
+- Sound effects for actions and events
+- Audio configuration per scene/room
+
+### Prediction (`lib/prediction/`)
+Client-side prediction system
+- Reduces perceived latency
+- Smooths player movement
+
+## Integration/Support
+
+### Admin (`lib/admin/`)
+Admin panel integration with @reldens/cms
+- Manages game configuration through web interface
+- Handles entity CRUD operations
+- Supports hot-plug configuration updates
+
+### Firebase (`lib/firebase/`)
+Firebase integration
+- Firebase authentication
+- Client-side Firebase SDK integration
+- `FirebaseIdTokenVerifier` verifies the ID token on the server and only accepts Firebase accounts with a verified
+  email; the login is validated by the username and that verified email (`reldens.loginPasswordValidationFallback`
+  event), the password sent to the login flow is random, so no Firebase value works on the regular password form
+- The accounts created through the Firebase login are stored with the `firebase` origin in the `users.origin` column
+
+### Ads (`lib/ads/`)
+Advertisement integration system
+- Third-party ad network support (CrazyGames, GameMonetize, Google AdSense), registered in `client/providers-list.js`
+- Ad placement configuration
+
+### Sync (`lib/sync/`)
+Colyseus primitives isolation layer
+- `server/colyseus/sync-server-driver.js`: Node-only `Server`, `Room`, `CloseCode`, `WebSocketTransport` and `monitor`
+- `shared/colyseus/sync-schema-driver.js`: isomorphic `@colyseus/schema` primitives safe for the client bundle
+- `client/colyseus/sync-client-driver.js`: browser `Client` and `getStateCallbacks` from `@colyseus/sdk`
+
+### Import (`lib/import/`)
+Data import utilities
+- Maps and objects importers, rooms associations creator
+- Skills, class paths, attributes and experience per level importers
+- Tile and map image extruders, published map merger
+
+### Objects (`lib/objects/`)
+Game objects (NPCs, interactables, respawn areas)
+- `server/manager.js` loads and manages room objects
+- Objects can listen to messages via `listenMessages` interface
+- Physical collision behavior is configured via `private_params` in the `objects` DB table:
+  - `"collisionType":2` - makes the object body STATIC (p2.js Body.STATIC), blocking the player from walking through it
+  - `"collisionType":1` - DYNAMIC body (default), enemies and moving objects use this
+  - `"hasState":true` - required alongside `collisionType:2` for respawnable objects that need Colyseus state sync
+  - `"collisionType":4` - KINEMATIC body, moved by its own velocity and never pushed, used by the NPCs that wander
+  - `"randomMovement":{"maxTiles":3}` - the object wanders around its original tile (`ObjectRandomMovement`), requires
+    `hasState:true`
+  - See `.claude/collision-configuration-guide.md` for full details
+- Timing objects (`server/object/type/timing-object.js`, the mining rocks and the fishing spots) run an action for
+  `timingDuration` and give the reward at the end; the `private_params` cancel rules are `"cancelOnMove":true` (the
+  player position changed), `"cancelOnHit":true` (the player affected property, `client/actions/skills/affectedProperty`,
+  installed as `hp`, decreased between two consecutive checks, a hit from an enemy or another player) and
+  `"cancelOnOutOfRange":true` (the player left the interaction area); `TimingObject.startTiming()` runs the checks every
+  100 ms and keeps the last affected value on each check, so a heal during the action does not hide a later hit:
+  ```js
+  let currentAffectedValue = sc.get(playerSchema.stats, affectedProperty, 0);
+  if(this.cancelOnHit && currentAffectedValue < lastAffectedValue){
+      this.cancelTiming(client);
+      return;
+  }
+  lastAffectedValue = currentAffectedValue;
+  ```
+
+### Snippets (`lib/snippets/`)
+Text snippets, locales and translations
+- `snippets`, `locale` and `usersLocale` entities for the UI and message texts
+- `translator.js` plus the client translations mapper and templates handler
+
+### Bundlers (`lib/bundlers/`)
+Asset bundling driver configuration
+- `drivers/parcel-config.json`: the Parcel config `ThemeManager` passes to the client and CSS bundling
+
+### Quests (`lib/quests/`)
+Quest progress tracking system (persistence layer only, not a full quest definition system)
+- `quests_progress` DB table: per-player and global quest flag storage (`player_id` nullable for global flags)
+- `server/plugin.js` (QuestsPlugin): listens `reldens.createPlayerAfter`, queries `questsProgress` entity for player and global rows, sends merged keys to client via `{act: 'playerQuestsData', quests: [...]}` message
+- `client/plugin.js` (QuestsClientPlugin): listens `reldens.activateRoom`, stores received quest keys on `gameManager.playerQuestsData`, emits `reldens.playerQuestsLoaded`
+- Objects and features consume `gameManager.playerQuestsData` to restore state on room join
+- Entity key: `questsProgress` (maps to `quests_progress` table in all storage drivers)

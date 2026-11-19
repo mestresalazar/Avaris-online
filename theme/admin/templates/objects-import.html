@@ -1,0 +1,46 @@
+<h2 class="section-title">Objects Import</h2>
+<div class="sub-content objects-import">
+    <div class="sub-content-box">
+        <form class="sub-content-form objects-import-form confirmation-required"
+            name="objects-import-form"
+            id="objects-import-form"
+            action="{{&actionPath}}"
+            method="post"
+            enctype="multipart/form-data">
+            <div class="main-action-container">
+                <div class="import-actions-row">
+                    <button type="button" class="button button-primary set-sample-data">
+                        Set Sample Data in "Generator Data"
+                    </button>
+                    <button type="button" class="button button-secondary check-sample-btn">
+                        Check sample
+                    </button>
+                </div>
+                <p>NOTE: if you already uploaded all your files and never manually removed them from the "generate-data" folder, you don't need to upload the same files again.</p>
+                <div class="input-box">
+                    <label for="generatorJsonFiles">JSON Files</label>
+                    <input type="file" name="generatorJsonFiles" id="generatorJsonFiles" multiple="multiple"/>
+                </div>
+                <label for="generatorData">Generator data (if not empty this data field will be used instead of the files):</label>
+                <textarea name="generatorData" id="generatorData" class="generatorData" rows="10" placeholder="JSON data for objects import process"></textarea>
+            </div>
+            <div class="submit-container">
+                <input type="submit" class="button button-primary button-objects-import" value="Import"/>
+                <img class="hidden loading" src="/assets/web/loading.gif"/>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="modal hidden" id="objects-sample-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog modal-width-auto">
+        <div class="modal-header">
+            <h4>Objects sample data</h4>
+            <button type="button" class="button button-close button-circle button-dark">×</button>
+        </div>
+        <div class="modal-body">
+            <textarea class="sample-data-display" readonly rows="20"></textarea>
+        </div>
+    </div>
+</div>
+<script src="/js/objects-import-bindings.js"></script>

@@ -1,0 +1,335 @@
+# Room Images and Tileset Override System
+
+## Overview
+
+This document explains how the room scene images upload system works and how the `overrideSceneImagesWithMapFile` option automatically synchronizes scene images with the Tiled map file tilesets.
+
+## Configuration
+
+**Config Path:** `server/rooms/maps/overrideSceneImagesWithMapFile`
+**Type:** Boolean
+**Default:** `true`
+**Location:** Database `config` table, as `scope` `server` plus `path` `rooms/maps/overrideSceneImagesWithMapFile` (read through `ConfigManager.getWithoutLogs`; there is no environment-variable override for config paths). No row is seeded, so the default applies until one is added.
+
+When enabled, the system uses the Tiled map file as the source of truth for scene images, automatically overriding the `scene_images` field with images listed in the map's tilesets.
+
+## File Locations
+
+### Source Code
+- **Validator:** `lib/admin/server/room-map-tilesets-validator.js`
+- **Subscriber:** `lib/admin/server/subscribers/rooms-entity-subscriber.js`
+- **File Upload Renderer:** `lib/admin/server/rooms-file-upload-renderer.js`
+- **Admin Plugin:** `lib/admin/server/plugin.js`
+
+### Admin Interface
+- **Tileset File Item Template:** `theme/admin/templates/fields/edit/tileset-file-item.html`
+- **Tileset Alert Wrapper Template:** `theme/admin/templates/fields/edit/tileset-alert-wrapper.html`
+- **Client JS:** `theme/admin/js/reldens-admin-client-maps.js` (`AdminClientMaps.bindTilesetAlertIcons()`)
+- **Client CSS:** `theme/admin/css/component-entries.css` (`.tileset-alert-wrapper`, `.upload-files-with-alert`), imported from `theme/admin/css/reldens-admin-client.css`
+- **Router:** `@reldens/cms` -> `lib/admin-manager/router-contents.js`
+
+## Database Schema
+
+### Rooms Table
+- `id` - Room identifier
+- `map_filename` - Tiled map JSON file (e.g., `reldens-forest-level-1.json`)
+- `scene_images` - Comma-separated list of tileset images (e.g., `reldens-forest-level-1.png,reldens-new-age-town.png`)
+
+### Upload Configuration
+Both fields are configured as upload fields in `lib/rooms/server/entities/rooms-entity-override.js`, and BOTH use the SAME bucket, `<projectThemePath>/assets/maps` (e.g. `theme/default/assets/maps`), with `bucketPath` `/assets/maps/`:
+- `map_filename` - Single file upload, `allowedTypes: TEXT`
+- `scene_images` - Multiple file upload (`isArray: ','`), `allowedTypes: IMAGE`
+
+## System Flow
+
+### 1. Initial Room Creation
+
+**User Actions:**
+1. Navigate to Admin -> Rooms -> Create New
+2. Upload map JSON file to `map_filename` field
+3. Upload tileset images to `scene_images` field
+4. Click Save
+
+**System Processing:**
+1. **Upload Phase** - Files saved to respective buckets
+2. **Validation Phase** - `validateUploadedFiles()` checks required fields
+3. **Save Phase** - Entity created in database
+4. **Post-Save Event** - `reldens.adminAfterEntitySave` fires
+5. **Validator Execution** - `RoomMapTilesetsValidator.validate()` runs
+
+**Validator Logic:**
+```javascript
+// Check if override is enabled
+overrideEnabled = config.getWithoutLogs('server/rooms/maps/overrideSceneImagesWithMapFile', true)
+
+// Read map file
+mapData = readMapFile(bucket, mapFilename, roomId)
+
+// Extract tileset images from map JSON
+tilesetImages = extractTilesetImages(mapData)
+// Example: ['reldens-forest-level-1.png']
+
+// Compare with current scene_images
+if (tilesetImages !== currentSceneImages) {
+    // Validate all images exist in scene_images bucket
+    if (validateImagesExist(tilesetImages, sceneImagesBucket)) {
+        // Override scene_images with tileset images
+        roomsRepository.updateById(roomId, {scene_images: tilesetImages.join(',')})
+    }
+}
+```
+
+### 2. Room Editing
+
+**User Actions:**
+1. Navigate to Admin -> Rooms -> Edit Room
+2. View existing files in both fields
+3. Modify files or click Save without changes
+
+**Edit Form Population:**
+
+**Event:** `reldens.adminEditPropertiesPopulation`
+
+**Flow:**
+```javascript
+// 1. Event emitted with room data
+event = {
+    // Entity configuration
+    driverResource,
+    renderedEditProperties, // Form properties
+    // Room from database
+    loadedEntity,
+    entityId: 'rooms',
+    entityData: loadedEntity
+}
+
+// 2. RoomsEntitySubscriber.populateEditFormTilesetImages() executes
+if (overrideSceneImagesWithMapFile) {
+    // Extract tileset images from map file
+    tilesetImages = validator.extractTilesetImagesFromEntity(entityData, driverResource)
+
+    // Inject into form properties
+    renderedEditProperties.tilesetImages = tilesetImages
+    renderedEditProperties.overrideSceneImagesEnabled = true
+}
+
+// 3. RoomsFileUploadRenderer processes scene_images field
+// Event: reldens.adminBeforeFieldRender
+if (propertyKey === 'scene_images' && tilesetImages.length > 0) {
+    // Render each file with protection flag
+    for each file:
+        renderedFileItems.push(render tileset-file-item.html with {
+            filename,
+            isProtected: tilesetImages.includes(filename)
+        })
+
+    // Wrap files in alert container
+    templateData.renderedFiles = render tileset-alert-wrapper.html
+}
+
+// 4. Template renders with tileset protection
+{{^isProtected}}
+    <button class="remove-upload-btn">X</button> -
+{{/isProtected}}
+{{filename}}
+```
+
+**Result:**
+- Protected images (tilesets): NO remove button
+- Non-protected images: Remove button shown
+- Alert icon displays with info message
+
+### 3. Saving Changes
+
+**Scenario A: No Files Changed**
+1. User clicks Save without uploading/removing files
+2. Validation passes (existing files satisfy requirement)
+3. Entity updated with form data
+4. Post-save validator runs
+5. If scene_images matches tilesets -> No action
+6. If mismatch -> Override with tileset images
+
+**Scenario B: Add New Image**
+1. User uploads additional image to `scene_images`
+2. `prepareUploadPatchData()` appends new file to existing files
+3. Entity saved with: `existing_images.png,new_image.png`
+4. Post-save validator runs
+5. Validates tileset images exist
+6. **Overrides** scene_images with ONLY tileset images (removes non-tileset images)
+
+**Scenario C: Remove Non-Protected Image**
+1. User clicks X button on non-protected image
+2. Client adds filename to `removed_scene_images` hidden input
+3. `prepareUploadPatchData()` filters removed files
+4. Entity saved with filtered list
+5. Post-save validator runs
+6. Overrides with tileset images (removes non-tileset files)
+
+**Scenario D: Attempt Remove Protected Image (Prevented)**
+1. Protected image (tileset) has NO remove button
+2. User cannot remove it through UI
+3. Alert icon displays: "Images specified in the tileset can't be removed since the option overrideSceneImagesWithMapFile is active."
+
+### 4. Map File Update
+
+**User Updates Map File:**
+1. User replaces `map_filename` with new Tiled map
+2. New map references different tileset images
+3. Entity saved
+4. Post-save validator executes
+5. Reads new map file tilesets
+6. **Replaces** scene_images with new tileset images
+7. Old images no longer referenced (user must manage cleanup)
+
+## Technical Details
+
+### Map File Structure
+
+**Example: reldens-forest-level-1.json**
+```json
+{
+    "tilesets": [
+        {
+            "columns": 25,
+            "firstgid": 1,
+            "image": "reldens-forest-level-1.png",
+            "imageheight": 782,
+            "imagewidth": 850,
+            "name": "reldens-forest-level-1",
+            "tilecount": 564
+        }
+    ]
+}
+```
+
+**Extraction Logic:**
+```javascript
+extractTilesetImages(mapData) {
+    let tilesets = mapData.tilesets || []
+    let images = []
+
+    for (let tileset of tilesets) {
+        let tilesetImage = tileset.image  // 'reldens-forest-level-1.png' or '../images/reldens-forest-level-1.png'
+        let imageFileName = tilesetImage.split('/').pop()  // Extract filename only
+
+        if (!images.includes(imageFileName)) {
+            images.push(imageFileName)
+        }
+    }
+
+    return images  // ['reldens-forest-level-1.png']
+}
+```
+
+### Validation Logic
+
+**Array Comparison (validator):**
+```javascript
+arraysAreEqual(array1, array2) {
+    if (array1.length !== array2.length) {
+        return false
+    }
+    let sorted1 = [...array1].sort()
+    let sorted2 = [...array2].sort()
+    for (let i = 0; i < sorted1.length; i++) {
+        if (sorted1[i] !== sorted2[i]) {
+            return false
+        }
+    }
+    return true
+}
+```
+
+**Image Existence Validation (validator):**
+```javascript
+validateImagesExist(tilesetImages, sceneImagesBucket, roomId, mapFilename) {
+    for (let imageFileName of tilesetImages) {
+        let imageFilePath = FileHandler.joinPaths(sceneImagesBucket, imageFileName)
+
+        if (!FileHandler.exists(imageFilePath)) {
+            return false
+        }
+    }
+
+    return true
+}
+```
+
+### Client-Side Protection
+
+**File Item Template (tileset-file-item.html):**
+```html
+<p class="upload-current-file" data-field="{{&fieldName}}" data-filename="{{&filename}}">
+    {{^isProtected}}
+        <button type="button" class="remove-upload-btn" data-field="{{&fieldName}}" data-filename="{{&filename}}" title="REMOVE">X</button> -
+    {{/isProtected}}
+    {{&filename}}
+</p>
+```
+
+**Alert Wrapper Template (tileset-alert-wrapper.html):**
+```html
+<div class="tileset-alert-wrapper">
+    <div class="upload-files-with-alert">
+        {{{renderedFileItems}}}
+    </div>
+    <div class="alert-icon-container">
+        <img src="/assets/admin/alert.png" class="alert-icon" alt="Info" title="Images specified in the tileset can't be removed since the option overrideSceneImagesWithMapFile is active.">
+        <span class="tileset-info-message hidden">Images specified in the tileset can't be removed since the option overrideSceneImagesWithMapFile is active.</span>
+    </div>
+</div>
+```
+
+**JavaScript Toggle (`AdminClientMaps.bindTilesetAlertIcons()` in `theme/admin/js/reldens-admin-client-maps.js`):**
+```javascript
+for (let icon of document.querySelectorAll('.alert-icon')) {
+    icon.addEventListener('click', () => {
+        let message = icon.nextElementSibling
+        if (message?.classList.contains('tileset-info-message')) {
+            message.classList.toggle('hidden')
+        }
+    })
+}
+```
+
+## Benefits
+
+1. **Consistency:** Scene images always match map tilesets
+2. **Automation:** No manual sync between map and images
+3. **Single Source of Truth:** Tiled map file controls image references
+4. **Developer Experience:** Edit maps in Tiled, changes auto-sync
+
+## Limitations
+
+1. **One-Way Sync:** Map -> Database only (not bidirectional)
+2. **Cleanup Required:** Removing tileset from map doesn't delete old image files
+3. **Override Always Wins:** Manual changes to scene_images get overwritten on next save
+4. **Active by Default:** the key is not seeded in the `config` table and both readers default to `true`, so the override runs until a row with value `0` is added
+
+## Disabling the Feature
+
+The feature is active by default: no `config` row is seeded for it, and both `RoomMapTilesetsValidator.validate()` (`lib/admin/server/room-map-tilesets-validator.js`) and `RoomsEntitySubscriber.populateEditFormTilesetImages()` (`lib/admin/server/subscribers/rooms-entity-subscriber.js`) read it with `true` as the fallback:
+
+```javascript
+let overrideEnabled = this.config.getWithoutLogs('server/rooms/maps/overrideSceneImagesWithMapFile', true);
+```
+
+To disable tileset override and manage images manually, add the config row (the key is read only from the `config` table; the `path` column excludes the `server` scope, and type `3` is `boolean` in `config_types`):
+
+```sql
+INSERT INTO config (scope, path, value, type) VALUES ('server', 'rooms/maps/overrideSceneImagesWithMapFile', '0', 3);
+```
+
+If the row already exists, update it instead:
+
+```sql
+UPDATE config SET value = '0' WHERE scope = 'server' AND path = 'rooms/maps/overrideSceneImagesWithMapFile';
+```
+
+The `config` table is loaded into `ConfigManager` at startup, so a row added or changed by SQL takes effect after a server restart.
+
+**Result:**
+- Post-save validation skipped
+- All images show remove buttons
+- Full manual control over scene_images field
+- Map file and scene_images can diverge
