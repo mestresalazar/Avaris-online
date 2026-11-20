@@ -44,6 +44,11 @@ appServer.events.on('reldens.serverConfigFeaturesReady', (props) => {
                 }
             }
         }
+        if (typeof cfg?.set === 'function') {
+            cfg.set('server/rooms/validateRoomsOriginRequest', false);
+        } else if (cfg?.config?.server?.rooms) {
+            cfg.config.server.rooms.validateRoomsOriginRequest = false;
+        }
         if (appServer?.app && typeof appServer.app.set === 'function') {
             appServer.app.set('trust proxy', 1);
         }
