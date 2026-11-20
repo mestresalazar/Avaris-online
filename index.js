@@ -1,4 +1,4 @@
-﻿try {
+try {
     require('dotenv').config();
 } catch (_) {}
 
@@ -23,6 +23,33 @@ appServer.mongoDb = null;
 
 appServer.events.on('reldens.serverConfigFeaturesReady', (props) => {
     console.log('Evento reldens.serverConfigFeaturesReady disparado com sucesso.');
+    try {
+        const renderUrl = 'https://avaris-online.onrender.com';
+        const cfg = appServer?.configManager;
+        if (cfg && typeof cfg.getWithoutLogs === 'function') {
+            const currentPublicUrl = cfg.getWithoutLogs('server/publicUrl', '');
+            const currentCorsOrigin = cfg.getWithoutLogs('server/appServerConfig/corsOrigin', '');
+            if (!currentPublicUrl || currentPublicUrl.includes('localhost') || currentPublicUrl.includes('127.0.0.1') || currentPublicUrl.includes('0.0.0.0')) {
+                if (typeof cfg.set === 'function') {
+                    cfg.set('server/publicUrl', renderUrl);
+                } else if (cfg.config?.server) {
+                    cfg.config.server.publicUrl = renderUrl;
+                }
+            }
+            if (!currentCorsOrigin || currentCorsOrigin === '*' || currentCorsOrigin.includes('localhost') || currentCorsOrigin.includes('127.0.0.1') || currentCorsOrigin.includes('0.0.0.0')) {
+                if (typeof cfg.set === 'function') {
+                    cfg.set('server/appServerConfig/corsOrigin', renderUrl);
+                } else if (cfg.config?.server?.appServerConfig) {
+                    cfg.config.server.appServerConfig.corsOrigin = renderUrl;
+                }
+            }
+        }
+        if (appServer?.app && typeof appServer.app.set === 'function') {
+            appServer.app.set('trust proxy', 1);
+        }
+    } catch (e) {
+        console.warn('Aviso ao ajustar URL/CORS no reldens.serverConfigFeaturesReady:', e?.message || e);
+    }
 });
 
 if ('1' === process.env.RELDENS_BLOCKED_ADMIN) {
@@ -49,7 +76,7 @@ if ('1' === process.env.RELDENS_BLOCKED_ADMIN) {
 async function startGameServer() {
     try {
         await appServer.createServers();
-        console.log('Instância do servidor criada.');
+        console.log('Inst�ncia do servidor criada.');
 
         await appServer.start();
         appServer.mongoDb = getMongoDb();
