@@ -1,4 +1,6 @@
-﻿require('dotenv').config();
+﻿try {
+    require('dotenv').config();
+} catch (_) {}
 
 const { ServerManager } = require('./lib/game/server/manager');
 const { ServerPlugin } = require('./theme/plugins/server-plugin');
