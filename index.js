@@ -16,6 +16,7 @@ let appServer = new ServerManager({
     database: process.env.RELDENS_DB_NAME || 'avaris_relms',
     jsSourceMaps: '1' === process.env.RELDENS_JS_SOURCEMAPS,
     cssSourceMaps: '1' === process.env.RELDENS_CSS_SOURCEMAPS,
+    allowRunBundler: process.env.RELDENS_ALLOW_RUN_BUNDLER !== '0',
     customPlugin: ServerPlugin
 }, null, mongoDataServer);
 
@@ -48,6 +49,17 @@ appServer.events.on('reldens.serverConfigFeaturesReady', (props) => {
             cfg.set('server/rooms/validateRoomsOriginRequest', false);
         } else if (cfg?.config?.server?.rooms) {
             cfg.config.server.rooms.validateRoomsOriginRequest = false;
+        }
+        const roomServers = cfg?.getWithoutLogs?.('client/rooms/servers', cfg?.config?.client?.rooms?.servers) || cfg?.config?.client?.rooms?.servers;
+        if (roomServers && typeof roomServers === 'object') {
+            for (const [roomKey, roomUrl] of Object.entries(roomServers)) {
+                if (typeof roomUrl === 'string' && (!roomUrl || roomUrl.includes('localhost') || roomUrl.includes('127.0.0.1') || roomUrl.includes(':10000'))) {
+                    roomServers[roomKey] = renderUrl;
+                }
+            }
+            if (typeof cfg?.set === 'function') {
+                cfg.set('client/rooms/servers', roomServers);
+            }
         }
         if (appServer?.app && typeof appServer.app.set === 'function') {
             appServer.app.set('trust proxy', 1);
